@@ -3,94 +3,102 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Marsklon — колонисты</title>
+<title>Marsklon — жизнь колонии</title>
 <style>
 *{box-sizing:border-box}body{margin:0;background:#171313;color:#fff;font-family:Arial,sans-serif;overflow:hidden}
 #game{position:fixed;inset:0}canvas{display:block}
-.hud{position:fixed;top:10px;left:10px;right:10px;display:flex;gap:6px;flex-wrap:wrap;z-index:2}
-.stat{background:#211b1be8;border:1px solid #a96c50;border-radius:9px;padding:7px 9px;font-size:12px}
-.stat b{color:#ffc08d}
-.panel{position:fixed;top:104px;left:10px;background:#211b1be8;border:1px solid #a96c50;border-radius:10px;padding:9px 11px;z-index:2;font-size:12px;line-height:1.55;max-width:190px}
-.panel strong{color:#ffc08d}.controls{position:fixed;bottom:15px;left:0;right:0;display:flex;justify-content:center;gap:8px;z-index:2;flex-wrap:wrap;padding:0 8px}
-button{border:1px solid #e6a477;background:#8e4328;color:white;border-radius:11px;padding:12px 14px;font-size:14px;font-weight:bold}
-.note{position:fixed;bottom:68px;left:10px;right:10px;text-align:center;color:#f2d4c1;font-size:11px;text-shadow:0 1px 3px #000}
-#toast{position:fixed;top:160px;left:50%;transform:translateX(-50%);background:#35231d;border:1px solid #e6a477;border-radius:10px;padding:10px 14px;z-index:5;display:none;font-size:13px;max-width:90%;text-align:center}
+.hud{position:fixed;top:9px;left:8px;right:8px;display:flex;gap:5px;flex-wrap:wrap;z-index:2}
+.stat,.panel{background:#211b1bee;border:1px solid #a96c50;border-radius:9px;padding:7px 9px;font-size:12px}
+.stat b,.panel strong{color:#ffc08d}
+.panel{position:fixed;top:100px;left:8px;z-index:2;line-height:1.5;max-width:205px}
+.panel .small{font-size:11px;color:#f0d4c2}
+.controls{position:fixed;bottom:12px;left:0;right:0;display:flex;justify-content:center;gap:7px;flex-wrap:wrap;padding:0 7px;z-index:3}
+button{border:1px solid #e6a477;background:#8e4328;color:white;border-radius:10px;padding:11px 12px;font-size:13px;font-weight:bold}
+#toast{position:fixed;top:165px;left:50%;transform:translateX(-50%);background:#35231d;border:1px solid #e6a477;border-radius:10px;padding:10px 13px;z-index:5;display:none;font-size:13px;max-width:90%;text-align:center}
+.note{position:fixed;bottom:62px;left:8px;right:8px;text-align:center;color:#f2d4c1;font-size:10px;text-shadow:0 1px 3px #000}
 </style>
 </head>
 <body>
 <div id="game"></div>
 <div class="hud">
- <div class="stat">🫁 Кислород: <b id="oxygen">100%</b></div>
- <div class="stat">💧 Вода: <b id="water">120</b></div>
- <div class="stat">🥫 Еда: <b id="food">80</b></div>
- <div class="stat">⚡ Энергия: <b id="energy">65</b></div>
- <div class="stat">👨‍🚀 Люди: <b id="people">3</b></div>
+ <div class="stat">🫁 Кислород <b id="oxygen">100%</b></div>
+ <div class="stat">💧 Вода <b id="water">120</b></div>
+ <div class="stat">🥫 Еда <b id="food">80</b></div>
+ <div class="stat">⚡ Энергия <b id="energy">65</b></div>
+ <div class="stat">👨‍🚀 Люди <b>3</b></div>
 </div>
 <div class="panel">
  <strong>Колония Marsklon</strong><br>
- День: <b id="day">1</b><br>
- <span id="settlers">Илья — отдыхает<br>Мира — работает<br>Том — исследует</span>
+ День: <b id="day">1</b> · <span id="clock">08:00</span><br>
+ <span id="settlers">Илья — работает<br>Мира — работает<br>Том — работает</span>
+ <hr style="border-color:#704735">
+ <strong>Потребности колонии</strong><br>
+ <span class="small" id="needs">Сытость: 100% · Отдых: 100%</span>
 </div>
 <div id="toast"></div>
 <div class="note">Проводи пальцем, чтобы вращать камеру. Своди и разводи два пальца для приближения.</div>
 <div class="controls">
- <button id="build">＋ Строить</button>
- <button id="foodBtn">🌱 Грядка</button>
- <button id="info">Информация</button>
+ <button id="build">＋ Водоочиститель</button>
+ <button id="farm">🌱 Построить грядку</button>
+ <button id="info">ℹ️ Помощь</button>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script>
 (()=>{
 const root=document.getElementById('game');
-if(!window.THREE){root.innerHTML='<p style="padding:30px">Для запуска нужен интернет. Обнови страницу.</p>';return;}
+if(!window.THREE){root.innerHTML='<p style="padding:25px">Для запуска нужен интернет. Обнови страницу.</p>';return;}
 const scene=new THREE.Scene();scene.background=new THREE.Color(0x211513);scene.fog=new THREE.Fog(0x211513,25,75);
-const camera=new THREE.PerspectiveCamera(55,innerWidth/innerHeight,.1,100);camera.position.set(9,8,12);
+const camera=new THREE.PerspectiveCamera(55,innerWidth/innerHeight,.1,100);
 const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(innerWidth,innerHeight);root.appendChild(renderer.domElement);
 scene.add(new THREE.HemisphereLight(0xffd5b2,0x4b2922,2));
 const sun=new THREE.DirectionalLight(0xffd0a0,2.4);sun.position.set(8,12,5);scene.add(sun);
 const ground=new THREE.Mesh(new THREE.PlaneGeometry(100,100),new THREE.MeshStandardMaterial({color:0x8d4531,roughness:1}));ground.rotation.x=-Math.PI/2;ground.position.y=-.12;scene.add(ground);
 const grid=new THREE.GridHelper(80,40,0x9d6047,0x754033);grid.position.y=-.1;scene.add(grid);
 const rockMat=new THREE.MeshStandardMaterial({color:0x593027,roughness:1});
-for(let i=0;i<65;i++){let r=new THREE.Mesh(new THREE.DodecahedronGeometry(.15+Math.random()*.5,0),rockMat);r.position.set((Math.random()-.5)*38,0,(Math.random()-.5)*38);r.scale.y=.4+Math.random();scene.add(r);}
+for(let i=0;i<65;i++){const r=new THREE.Mesh(new THREE.DodecahedronGeometry(.15+Math.random()*.5,0),rockMat);r.position.set((Math.random()-.5)*38,0,(Math.random()-.5)*38);r.scale.y=.4+Math.random();scene.add(r);}
 const base=new THREE.Group();scene.add(base);
 const floor=new THREE.Mesh(new THREE.CylinderGeometry(3.2,3.5,.35,48),new THREE.MeshStandardMaterial({color:0x77716a,metalness:.4,roughness:.6}));floor.position.y=.1;base.add(floor);
 const dome=new THREE.Mesh(new THREE.SphereGeometry(3,40,24,0,Math.PI*2,0,Math.PI/2),new THREE.MeshPhysicalMaterial({color:0x9bd7e8,transparent:true,opacity:.22,roughness:.1,metalness:.15,side:THREE.DoubleSide}));dome.position.y=.28;base.add(dome);
 const ring=new THREE.Mesh(new THREE.TorusGeometry(3,.12,12,64),new THREE.MeshStandardMaterial({color:0xb8c4c8,metalness:.7,roughness:.3}));ring.rotation.x=Math.PI/2;ring.position.y=.3;base.add(ring);
-const moduleMat=new THREE.MeshStandardMaterial({color:0xd6d0c5,metalness:.35,roughness:.55});
-const module1=new THREE.Mesh(new THREE.CylinderGeometry(.8,.9,1.5,24),moduleMat);module1.position.set(0,.95,0);base.add(module1);
+const module1=new THREE.Mesh(new THREE.CylinderGeometry(.8,.9,1.5,24),new THREE.MeshStandardMaterial({color:0xd6d0c5,metalness:.35,roughness:.55}));module1.position.set(0,.95,0);base.add(module1);
 const roof=new THREE.Mesh(new THREE.ConeGeometry(.85,.55,24),new THREE.MeshStandardMaterial({color:0x9b5c3d,metalness:.3}));roof.position.set(0,1.95,0);base.add(roof);
 const panel=new THREE.Group();panel.position.set(5,.35,1);scene.add(panel);
 const panelBase=new THREE.Mesh(new THREE.BoxGeometry(2.8,.12,1.7),new THREE.MeshStandardMaterial({color:0x33383d,metalness:.5}));panelBase.position.y=.8;panel.add(panelBase);
-for(let i=0;i<4;i++){let p=new THREE.Mesh(new THREE.BoxGeometry(.64,.04,1.55),new THREE.MeshStandardMaterial({color:0x174b78,metalness:.6,roughness:.25}));p.position.set(-.99+i*.66,.9,0);panel.add(p);}
+for(let i=0;i<4;i++){const p=new THREE.Mesh(new THREE.BoxGeometry(.64,.04,1.55),new THREE.MeshStandardMaterial({color:0x174b78,metalness:.6,roughness:.25}));p.position.set(-.99+i*.66,.9,0);panel.add(p);}
 const metal=new THREE.MeshStandardMaterial({color:0xaaa39a,metalness:.6});
-for(let x of [-1,1])for(let z of [-.55,.55]){let leg=new THREE.Mesh(new THREE.CylinderGeometry(.05,.07,.8,8),metal);leg.position.set(x,.4,z);panel.add(leg);}
-function makePerson(color){const g=new THREE.Group();const suit=new THREE.MeshStandardMaterial({color,roughness:.7});const body=new THREE.Mesh(new THREE.CapsuleGeometry(.19,.42,4,8),suit);body.position.y=.55;g.add(body);const helmet=new THREE.Mesh(new THREE.SphereGeometry(.19,16,12),new THREE.MeshStandardMaterial({color:0xdcecf0,metalness:.35,roughness:.18}));helmet.position.y=.94;g.add(helmet);const visor=new THREE.Mesh(new THREE.SphereGeometry(.125,12,8),new THREE.MeshStandardMaterial({color:0x234b63,metalness:.6,roughness:.15}));visor.scale.set(1,.72,.5);visor.position.set(0,.96,.14);g.add(visor);for(let x of [-.11,.11]){let leg=new THREE.Mesh(new THREE.CylinderGeometry(.055,.06,.28,8),suit);leg.position.set(x,.18,0);g.add(leg);}return g;}
-const settlers=[
-{name:'Илья',color:0x3e9cce,home:[-1.3,0,1.3],target:[-1.3,0,1.3],speed:.7,phase:0},
-{name:'Мира',color:0xd58b48,home:[1.3,0,1.2],target:[5,0,1],speed:.85,phase:2},
-{name:'Том',color:0x78a96b,home:[0,0,-1.5],target:[-5,0,1],speed:.65,phase:4}
+for(const x of [-1,1])for(const z of [-.55,.55]){const leg=new THREE.Mesh(new THREE.CylinderGeometry(.05,.07,.8,8),metal);leg.position.set(x,.4,z);panel.add(leg);}
+function person(color){const g=new THREE.Group(),suit=new THREE.MeshStandardMaterial({color,roughness:.7});const body=new THREE.Mesh(new THREE.CapsuleGeometry(.19,.42,4,8),suit);body.position.y=.55;g.add(body);const helmet=new THREE.Mesh(new THREE.SphereGeometry(.19,16,12),new THREE.MeshStandardMaterial({color:0xdcecf0,metalness:.35,roughness:.18}));helmet.position.y=.94;g.add(helmet);const visor=new THREE.Mesh(new THREE.SphereGeometry(.125,12,8),new THREE.MeshStandardMaterial({color:0x234b63,metalness:.6,roughness:.15}));visor.scale.set(1,.72,.5);visor.position.set(0,.96,.14);g.add(visor);for(const x of [-.11,.11]){const leg=new THREE.Mesh(new THREE.CylinderGeometry(.055,.06,.28,8),suit);leg.position.set(x,.18,0);g.add(leg);}return g;}
+const people=[
+{name:'Илья',mesh:person(0x3e9cce),speed:.7,phase:0,hunger:100,rest:100},
+{name:'Мира',mesh:person(0xd58b48),speed:.85,phase:2,hunger:100,rest:100},
+{name:'Том',mesh:person(0x78a96b),speed:.65,phase:4,hunger:100,rest:100}
 ];
-settlers.forEach(s=>{s.mesh=makePerson(s.color);s.mesh.position.set(...s.home);scene.add(s.mesh);});
-function addWaterPlant(){let g=new THREE.Group();g.position.set(-5,0,1);scene.add(g);let tank=new THREE.Mesh(new THREE.CylinderGeometry(.65,.65,1.5,24),new THREE.MeshStandardMaterial({color:0x6e9da5,metalness:.5,roughness:.35}));tank.position.y=.8;g.add(tank);let top=new THREE.Mesh(new THREE.SphereGeometry(.65,24,12,0,Math.PI*2,0,Math.PI/2),new THREE.MeshStandardMaterial({color:0x9fc6c8,metalness:.4}));top.position.y=1.55;g.add(top);let pipe=new THREE.Mesh(new THREE.CylinderGeometry(.09,.09,1.5,12),metal);pipe.rotation.z=Math.PI/2;pipe.position.set(.9,1.15,0);g.add(pipe);}
-let built=false,hasFarm=false,water=120,energy=65,food=80,day=1;
-function toast(msg){let t=document.getElementById('toast');t.textContent=msg;t.style.display='block';clearTimeout(toast.timer);toast.timer=setTimeout(()=>t.style.display='none',2400);}
-document.getElementById('build').onclick=()=>{if(built){toast('Водоочиститель уже построен.');return;}if(water<30||energy<15){toast('Недостаточно ресурсов для строительства.');return;}built=true;water-=30;energy-=15;addWaterPlant();refresh();toast('Водоочиститель построен!');};
-document.getElementById('foodBtn').onclick=()=>{if(hasFarm){toast('Грядка уже построена.');return;}if(energy<10||water<15){toast('Нужно 15 воды и 10 энергии.');return;}hasFarm=true;water-=15;energy-=10;let bed=new THREE.Mesh(new THREE.BoxGeometry(2.4,.22,1.5),new THREE.MeshStandardMaterial({color:0x513523}));bed.position.set(0,.12,-5);scene.add(bed);for(let i=0;i<5;i++){let plant=new THREE.Mesh(new THREE.CylinderGeometry(.04,.07,.65,7),new THREE.MeshStandardMaterial({color:0x4b9a48}));plant.position.set(-.8+i*.4,.52,-5);scene.add(plant);}toast('Грядка построена. Урожай появится позже.');refresh();};
-document.getElementById('info').onclick=()=>toast('Колонисты уже ходят по базе. Строй грядки, чтобы выращивать еду.');
-function refresh(){document.getElementById('water').textContent=water;document.getElementById('energy').textContent=energy;document.getElementById('food').textContent=food;}
+people.forEach((p,i)=>{p.mesh.position.set(i-1,0,1);scene.add(p.mesh);});
+let water=120,food=80,energy=65,day=1,elapsed=0,hasFarm=false,built=false;
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.style.display='block';clearTimeout(toast.timer);toast.timer=setTimeout(()=>t.style.display='none',2600);}
+function refresh(){document.getElementById('water').textContent=water;document.getElementById('food').textContent=food;document.getElementById('energy').textContent=energy;const h=people.reduce((a,p)=>a+p.hunger,0)/3,r=people.reduce((a,p)=>a+p.rest,0)/3;document.getElementById('needs').textContent='Сытость: '+Math.round(h)+'% · Отдых: '+Math.round(r)+'%';}
+function waterPlant(){const g=new THREE.Group();g.position.set(-5,0,1);scene.add(g);const tank=new THREE.Mesh(new THREE.CylinderGeometry(.65,.65,1.5,24),new THREE.MeshStandardMaterial({color:0x6e9da5,metalness:.5}));tank.position.y=.8;g.add(tank);const top=new THREE.Mesh(new THREE.SphereGeometry(.65,24,12,0,Math.PI*2,0,Math.PI/2),new THREE.MeshStandardMaterial({color:0x9fc6c8}));top.position.y=1.55;g.add(top);}
+function farm(){const bed=new THREE.Mesh(new THREE.BoxGeometry(2.4,.22,1.5),new THREE.MeshStandardMaterial({color:0x513523}));bed.position.set(0,.12,-5);scene.add(bed);for(let i=0;i<5;i++){const plant=new THREE.Mesh(new THREE.CylinderGeometry(.04,.07,.65,7),new THREE.MeshStandardMaterial({color:0x4b9a48}));plant.position.set(-.8+i*.4,.52,-5);scene.add(plant);}}
+document.getElementById('build').onclick=()=>{if(built)return toast('Водоочиститель уже построен.');if(water<30||energy<15)return toast('Нужно 30 воды и 15 энергии.');built=true;water-=30;energy-=15;waterPlant();refresh();toast('Водоочиститель построен!');};
+document.getElementById('farm').onclick=()=>{if(hasFarm)return toast('Грядка уже построена.');if(water<15||energy<10)return toast('Нужно 15 воды и 10 энергии.');hasFarm=true;water-=15;energy-=10;farm();refresh();toast('Грядка готова! Первый урожай будет завтра.');};
+document.getElementById('info').onclick=()=>toast('Колонисты работают, отдыхают и спят по расписанию. Грядка даёт +12 еды каждый новый день.');
 let target=new THREE.Vector3(0,0,0),az=Math.PI/4,el=.55,dist=16,down=false,lastX=0,lastY=0;
 function updateCamera(){el=Math.max(.15,Math.min(1.35,el));dist=Math.max(7,Math.min(30,dist));camera.position.set(target.x+dist*Math.sin(az)*Math.cos(el),target.y+dist*Math.sin(el),target.z+dist*Math.cos(az)*Math.cos(el));camera.lookAt(target);}
-updateCamera();const elmt=renderer.domElement;
-elmt.addEventListener('pointerdown',e=>{down=true;lastX=e.clientX;lastY=e.clientY;elmt.setPointerCapture(e.pointerId);});
-elmt.addEventListener('pointermove',e=>{if(!down)return;az-=(e.clientX-lastX)*.008;el+=(e.clientY-lastY)*.006;lastX=e.clientX;lastY=e.clientY;updateCamera();});
-elmt.addEventListener('pointerup',()=>down=false);elmt.addEventListener('pointercancel',()=>down=false);
-elmt.addEventListener('wheel',e=>{dist+=e.deltaY*.01;updateCamera();},{passive:true});
-let pinch=0;elmt.addEventListener('touchmove',e=>{if(e.touches.length===2){let d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);if(pinch)dist+=(pinch-d)*.025;pinch=d;updateCamera();}},{passive:true});elmt.addEventListener('touchend',()=>pinch=0);
-let elapsed=0,last=performance.now();
-function animate(now){requestAnimationFrame(animate);let dt=Math.min((now-last)/1000,.05);last=now;elapsed+=dt;
-settlers.forEach((s,i)=>{let t=elapsed*.35+s.phase;let radius=i===0?1.8:6.0;let cx=i===0?0:(i===1?5:-5),cz=i===0?0:1;s.target=[cx+Math.cos(t)*radius,0,cz+Math.sin(t)*radius*.55];let dx=s.target[0]-s.mesh.position.x,dz=s.target[2]-s.mesh.position.z,len=Math.hypot(dx,dz);if(len>.08){let step=Math.min(len,s.speed*dt);s.mesh.position.x+=dx/len*step;s.mesh.position.z+=dz/len*step;s.mesh.rotation.y=Math.atan2(dx,dz);}s.mesh.position.y=.025+Math.abs(Math.sin(elapsed*6+s.phase))*.025;});
-if(elapsed>90){elapsed=0;day++;document.getElementById('day').textContent=day;food=Math.max(0,food-3);water=Math.max(0,water-2);refresh();toast('Наступил новый день. Колонисты израсходовали припасы.');}
-base.rotation.y+=.00035;renderer.render(scene,camera);}
+updateCamera();const canvas=renderer.domElement;
+canvas.addEventListener('pointerdown',e=>{down=true;lastX=e.clientX;lastY=e.clientY;canvas.setPointerCapture(e.pointerId);});
+canvas.addEventListener('pointermove',e=>{if(!down)return;az-=(e.clientX-lastX)*.008;el+=(e.clientY-lastY)*.006;lastX=e.clientX;lastY=e.clientY;updateCamera();});
+canvas.addEventListener('pointerup',()=>down=false);canvas.addEventListener('pointercancel',()=>down=false);
+let pinch=0;canvas.addEventListener('touchmove',e=>{if(e.touches.length===2){const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);if(pinch)dist+=(pinch-d)*.025;pinch=d;updateCamera();}},{passive:true});canvas.addEventListener('touchend',()=>pinch=0);
+let last=performance.now();
+function animate(now){requestAnimationFrame(animate);const dt=Math.min((now-last)/1000,.05);last=now;elapsed+=dt;
+const hour=Math.floor((elapsed%90)/90*24);document.getElementById('clock').textContent=String(hour).padStart(2,'0')+':00';
+people.forEach((p,i)=>{const phase=(elapsed+p.phase*7)%90;let status=phase<45?'работает':phase<65?'отдыхает':'спит';if(phase>65)p.rest=Math.min(100,p.rest+dt*2.8);else p.rest=Math.max(0,p.rest-dt*.55);p.hunger=Math.max(0,p.hunger-dt*.08);
+const radius=status==='спит'?1.1:(i===0?1.8:6),cx=i===0?0:(i===1?5:-5),cz=i===0?0:1,t=elapsed*.35+p.phase;
+const tx=cx+Math.cos(t)*radius,tz=cz+Math.sin(t)*radius*.55,dx=tx-p.mesh.position.x,dz=tz-p.mesh.position.z,len=Math.hypot(dx,dz);
+if(len>.08){const step=Math.min(len,p.speed*dt);p.mesh.position.x+=dx/len*step;p.mesh.position.z+=dz/len*step;p.mesh.rotation.y=Math.atan2(dx,dz);}p.mesh.position.y=.025+Math.abs(Math.sin(elapsed*6+p.phase))*.025;p.status=status;});
+document.getElementById('settlers').innerHTML=people.map(p=>p.name+' — '+p.status).join('<br>');
+if(elapsed>=90){elapsed=0;day++;document.getElementById('day').textContent=day;food=Math.max(0,food-6);water=Math.max(0,water-3);energy=Math.max(0,energy-2);if(hasFarm){food+=12;toast('Урожай собран: +12 еды!');}people.forEach(p=>p.hunger=food>0?Math.min(100,p.hunger+18):Math.max(0,p.hunger-20));refresh();if(food===0)toast('Заканчивается еда! Построй грядку.');}
+refresh();renderer.render(scene,camera);}
 requestAnimationFrame(animate);
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
 })();
