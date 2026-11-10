@@ -1,1 +1,75 @@
-
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Marsklon</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#171313;color:#fff;font-family:Arial,sans-serif;overflow:hidden}
+#game{position:fixed;inset:0}canvas{display:block}
+.hud{position:fixed;top:12px;left:12px;right:12px;display:flex;gap:7px;flex-wrap:wrap;z-index:2}
+.stat{background:#211b1bdc;border:1px solid #a96c50;border-radius:10px;padding:8px 10px;font-size:13px}
+.stat b{color:#ffc08d}
+.controls{position:fixed;bottom:18px;left:0;right:0;display:flex;justify-content:center;gap:10px;z-index:2}
+button{border:1px solid #e6a477;background:#8e4328;color:white;border-radius:12px;padding:13px 18px;font-size:16px;font-weight:bold}
+.note{position:fixed;bottom:78px;left:12px;right:12px;text-align:center;color:#f2d4c1;font-size:12px;text-shadow:0 1px 3px #000}
+</style>
+</head>
+<body>
+<div id="game"></div>
+<div class="hud">
+ <div class="stat">🫁 Кислород: <b id="oxygen">100%</b></div>
+ <div class="stat">💧 Вода: <b id="water">120</b></div>
+ <div class="stat">🥫 Еда: <b id="food">80</b></div>
+ <div class="stat">⚡ Энергия: <b id="energy">65</b></div>
+</div>
+<div class="note">Проводи пальцем, чтобы вращать камеру. Своди и разводи два пальца для приближения.</div>
+<div class="controls">
+ <button id="build">＋ Строить</button>
+ <button id="info">Информация</button>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script>
+(()=>{
+const root=document.getElementById('game');
+if(!window.THREE){root.innerHTML='<p style="padding:30px">Для запуска нужен интернет. Обнови страницу.</p>';return;}
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x211513);scene.fog=new THREE.Fog(0x211513,25,75);
+const camera=new THREE.PerspectiveCamera(55,innerWidth/innerHeight,.1,100);camera.position.set(9,8,12);
+const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(innerWidth,innerHeight);root.appendChild(renderer.domElement);
+scene.add(new THREE.HemisphereLight(0xffd5b2,0x4b2922,2));
+const sun=new THREE.DirectionalLight(0xffd0a0,2.4);sun.position.set(8,12,5);scene.add(sun);
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(100,100),new THREE.MeshStandardMaterial({color:0x8d4531,roughness:1}));ground.rotation.x=-Math.PI/2;ground.position.y=-.12;scene.add(ground);
+const grid=new THREE.GridHelper(80,40,0x9d6047,0x754033);grid.position.y=-.1;scene.add(grid);
+const rockMat=new THREE.MeshStandardMaterial({color:0x593027,roughness:1});
+for(let i=0;i<65;i++){let r=new THREE.Mesh(new THREE.DodecahedronGeometry(.15+Math.random()*.5,0),rockMat);r.position.set((Math.random()-.5)*38,0,(Math.random()-.5)*38);r.scale.y=.4+Math.random();scene.add(r);}
+const base=new THREE.Group();scene.add(base);
+const floor=new THREE.Mesh(new THREE.CylinderGeometry(3.2,3.5,.35,48),new THREE.MeshStandardMaterial({color:0x77716a,metalness:.4,roughness:.6}));floor.position.y=.1;base.add(floor);
+const dome=new THREE.Mesh(new THREE.SphereGeometry(3,40,24,0,Math.PI*2,0,Math.PI/2),new THREE.MeshPhysicalMaterial({color:0x9bd7e8,transparent:true,opacity:.22,roughness:.1,metalness:.15,side:THREE.DoubleSide}));dome.position.y=.28;base.add(dome);
+const ring=new THREE.Mesh(new THREE.TorusGeometry(3,.12,12,64),new THREE.MeshStandardMaterial({color:0xb8c4c8,metalness:.7,roughness:.3}));ring.rotation.x=Math.PI/2;ring.position.y=.3;base.add(ring);
+const moduleMat=new THREE.MeshStandardMaterial({color:0xd6d0c5,metalness:.35,roughness:.55});
+const module1=new THREE.Mesh(new THREE.CylinderGeometry(.8,.9,1.5,24),moduleMat);module1.position.set(0,.95,0);base.add(module1);
+const roof=new THREE.Mesh(new THREE.ConeGeometry(.85,.55,24),new THREE.MeshStandardMaterial({color:0x9b5c3d,metalness:.3}));roof.position.set(0,1.95,0);base.add(roof);
+const panel=new THREE.Group();panel.position.set(5,.35,1);scene.add(panel);
+const panelBase=new THREE.Mesh(new THREE.BoxGeometry(2.8,.12,1.7),new THREE.MeshStandardMaterial({color:0x33383d,metalness:.5}));panelBase.position.y=.8;panel.add(panelBase);
+for(let i=0;i<4;i++){let p=new THREE.Mesh(new THREE.BoxGeometry(.64,.04,1.55),new THREE.MeshStandardMaterial({color:0x174b78,metalness:.6,roughness:.25}));p.position.set(-.99+i*.66,.9,0);panel.add(p);}
+const legmat=new THREE.MeshStandardMaterial({color:0xaaa39a,metalness:.6});
+for(let x of [-1,1])for(let z of [-.55,.55]){let leg=new THREE.Mesh(new THREE.CylinderGeometry(.05,.07,.8,8),legmat);leg.position.set(x,.4,z);panel.add(leg);}
+let built=false;
+document.getElementById('build').onclick=()=>{if(built){alert('Водоочиститель уже построен.');return;}built=true;document.getElementById('water').textContent='90';document.getElementById('energy').textContent='50';let g=new THREE.Group();g.position.set(-5,0,1);scene.add(g);let tank=new THREE.Mesh(new THREE.CylinderGeometry(.65,.65,1.5,24),new THREE.MeshStandardMaterial({color:0x6e9da5,metalness:.5,roughness:.35}));tank.position.y=.8;g.add(tank);let top=new THREE.Mesh(new THREE.SphereGeometry(.65,24,12,0,Math.PI*2,0,Math.PI/2),new THREE.MeshStandardMaterial({color:0x9fc6c8,metalness:.4}));top.position.y=1.55;g.add(top);let pipe=new THREE.Mesh(new THREE.CylinderGeometry(.09,.09,1.5,12),legmat);pipe.rotation.z=Math.PI/2;pipe.position.set(.9,1.15,0);g.add(pipe);alert('Водоочиститель построен! Потрачено 30 воды и 15 энергии.');};
+document.getElementById('info').onclick=()=>alert('Marsklon — прототип марсианской колонии. Следующая цель: добавить колонистов, добычу ресурсов и строительство жилых модулей.');
+let target=new THREE.Vector3(0,0,0),az= Math.PI/4,el=.55,dist=16,down=false,lastX=0,lastY=0,lastPinch=0;
+function updateCamera(){el=Math.max(.15,Math.min(1.35,el));dist=Math.max(7,Math.min(30,dist));camera.position.set(target.x+dist*Math.sin(az)*Math.cos(el),target.y+dist*Math.sin(el),target.z+dist*Math.cos(az)*Math.cos(el));camera.lookAt(target);}
+updateCamera();
+const elmt=renderer.domElement;
+elmt.addEventListener('pointerdown',e=>{down=true;lastX=e.clientX;lastY=e.clientY;elmt.setPointerCapture(e.pointerId);});
+elmt.addEventListener('pointermove',e=>{if(!down)return;az-=(e.clientX-lastX)*.008;el+=(e.clientY-lastY)*.006;lastX=e.clientX;lastY=e.clientY;updateCamera();});
+elmt.addEventListener('pointerup',()=>down=false);elmt.addEventListener('pointercancel',()=>down=false);
+elmt.addEventListener('wheel',e=>{dist+=e.deltaY*.01;updateCamera();},{passive:true});
+let pinch=0;
+elmt.addEventListener('touchmove',e=>{if(e.touches.length===2){let d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);if(pinch)dist+=(pinch-d)*.025;pinch=d;updateCamera();}},{passive:true});
+elmt.addEventListener('touchend',()=>pinch=0);
+function animate(){requestAnimationFrame(animate);base.rotation.y+=.0005;renderer.render(scene,camera);}animate();
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+})();
+</script>
+</body></html>
