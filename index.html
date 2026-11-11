@@ -3,19 +3,23 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Marsklon — жизнь колонии</title>
+<title>Marsklon — футуристическая колония</title>
 <style>
-*{box-sizing:border-box}body{margin:0;background:#171313;color:#fff;font-family:Arial,sans-serif;overflow:hidden}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#080f1c;color:#e9faff;font-family:Arial,sans-serif;touch-action:none}
 #game{position:fixed;inset:0}canvas{display:block}
-.hud{position:fixed;top:9px;left:8px;right:8px;display:flex;gap:5px;flex-wrap:wrap;z-index:2}
-.stat,.panel{background:#211b1bee;border:1px solid #a96c50;border-radius:9px;padding:7px 9px;font-size:12px}
-.stat b,.panel strong{color:#ffc08d}
-.panel{position:fixed;top:100px;left:8px;z-index:2;line-height:1.5;max-width:215px}
-.panel .small{font-size:11px;color:#f0d4c2}
-.controls{position:fixed;bottom:12px;left:0;right:0;display:flex;justify-content:center;gap:7px;flex-wrap:wrap;padding:0 7px;z-index:3}
-button{border:1px solid #e6a477;background:#8e4328;color:white;border-radius:10px;padding:11px 12px;font-size:13px;font-weight:bold}
-#toast{position:fixed;top:165px;left:50%;transform:translateX(-50%);background:#35231d;border:1px solid #e6a477;border-radius:10px;padding:10px 13px;z-index:5;display:none;font-size:13px;max-width:90%;text-align:center}
-.note{position:fixed;bottom:62px;left:8px;right:8px;text-align:center;color:#f2d4c1;font-size:10px;text-shadow:0 1px 3px #000}
+.hud{position:fixed;top:9px;left:8px;right:8px;display:flex;gap:6px;flex-wrap:wrap;z-index:2;pointer-events:none}
+.stat,.panel{background:linear-gradient(135deg,#102538eF,#0a1525eF);border:1px solid #36d9e8a8;border-radius:10px;padding:7px 10px;font-size:12px;box-shadow:0 0 14px #16cde533,inset 0 0 12px #1c9db01a;backdrop-filter:blur(8px)}
+.stat b,.panel strong{color:#69f5ff;text-shadow:0 0 8px #31d9ff}
+.panel{position:fixed;top:112px;left:8px;z-index:2;line-height:1.55;max-width:220px}
+.panel .small{font-size:11px;color:#b5dce7}
+.panel hr{border-color:#267e91}
+.controls{position:fixed;bottom:13px;left:0;right:0;display:flex;justify-content:center;gap:7px;flex-wrap:wrap;padding:0 7px;z-index:3}
+button{border:1px solid #52efff;background:linear-gradient(135deg,#12647a,#12334f);color:#f1ffff;border-radius:11px;padding:12px 13px;font-size:13px;font-weight:bold;box-shadow:0 0 13px #1dcde755;touch-action:manipulation}
+button:active{transform:scale(.96);background:#16849a}
+#toast{position:fixed;top:178px;left:50%;transform:translateX(-50%);background:#102a3bed;border:1px solid #54eaff;border-radius:10px;padding:10px 13px;z-index:5;display:none;font-size:13px;max-width:90%;text-align:center;box-shadow:0 0 18px #20d9ff55}
+.note{position:fixed;bottom:65px;left:8px;right:8px;text-align:center;color:#b8eaf2;font-size:10px;text-shadow:0 1px 4px #000}
+.brand{position:fixed;right:10px;top:112px;color:#71f3ff;font-size:10px;letter-spacing:2px;text-shadow:0 0 10px #26dfff;z-index:2;opacity:.8}
+@media(max-width:390px){.stat{font-size:11px;padding:6px 8px}.panel{top:108px;font-size:12px}.controls button{font-size:12px;padding:10px 9px}}
 </style>
 </head>
 <body>
@@ -28,13 +32,14 @@ button{border:1px solid #e6a477;background:#8e4328;color:white;border-radius:10p
  <div class="stat">👨‍🚀 Люди <b>3</b></div>
 </div>
 <div class="panel">
- <strong>Колония Marsklon</strong><br>
+ <strong>MARSKLON / БАЗА 01</strong><br>
  День: <b id="day">1</b> · <span id="clock">08:00</span><br>
  <span id="settlers">Илья — работает<br>Мира — работает<br>Том — работает</span>
- <hr style="border-color:#704735">
- <strong>Потребности колонии</strong><br>
+ <hr>
+ <strong>Состояние колонии</strong><br>
  <span class="small" id="needs">Сытость: 100% · Отдых: 100%</span>
 </div>
+<div class="brand">ARES SECTOR · MARS</div>
 <div id="toast"></div>
 <div class="note">Проводи пальцем, чтобы вращать камеру. Своди и разводи два пальца для приближения.</div>
 <div class="controls">
@@ -47,103 +52,85 @@ button{border:1px solid #e6a477;background:#8e4328;color:white;border-radius:10p
 (()=>{
 const root=document.getElementById('game');
 if(!window.THREE){root.innerHTML='<p style="padding:25px">Для запуска нужен интернет. Обнови страницу.</p>';return;}
-const scene=new THREE.Scene();scene.background=new THREE.Color(0x211513);scene.fog=new THREE.Fog(0x211513,25,75);
-const camera=new THREE.PerspectiveCamera(55,innerWidth/innerHeight,.1,100);
-const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(innerWidth,innerHeight);root.appendChild(renderer.domElement);
-scene.add(new THREE.HemisphereLight(0xffd5b2,0x4b2922,2));
-const sun=new THREE.DirectionalLight(0xffd0a0,2.4);sun.position.set(8,12,5);scene.add(sun);
-const ground=new THREE.Mesh(new THREE.PlaneGeometry(100,100),new THREE.MeshStandardMaterial({color:0x8d4531,roughness:1}));ground.rotation.x=-Math.PI/2;ground.position.y=-.12;scene.add(ground);
-const grid=new THREE.GridHelper(80,40,0x9d6047,0x754033);grid.position.y=-.1;scene.add(grid);
-const rockMat=new THREE.MeshStandardMaterial({color:0x593027,roughness:1});
-for(let i=0;i<65;i++){const r=new THREE.Mesh(new THREE.DodecahedronGeometry(.15+Math.random()*.5,0),rockMat);r.position.set((Math.random()-.5)*38,0,(Math.random()-.5)*38);r.scale.y=.4+Math.random();scene.add(r);}
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x071322);scene.fog=new THREE.Fog(0x101a2b,28,85);
+const camera=new THREE.PerspectiveCamera(53,innerWidth/innerHeight,.1,120);
+const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
+renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));renderer.setSize(innerWidth,innerHeight);
+renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;
+root.appendChild(renderer.domElement);
+scene.add(new THREE.HemisphereLight(0x8bdfff,0x542b36,1.65));
+const sun=new THREE.DirectionalLight(0xffc49a,2.5);sun.position.set(-9,15,8);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);scene.add(sun);
+const cyanLight=new THREE.PointLight(0x19dfff,18,24);cyanLight.position.set(0,3,0);scene.add(cyanLight);
+const redLight=new THREE.PointLight(0xff563b,13,32);redLight.position.set(-8,4,-7);scene.add(redLight);
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(120,120),new THREE.MeshStandardMaterial({color:0x743b36,roughness:1}));ground.rotation.x=-Math.PI/2;ground.position.y=-.15;ground.receiveShadow=true;scene.add(ground);
+const grid=new THREE.GridHelper(90,45,0x25899c,0x4c5969);grid.position.y=-.13;grid.material.transparent=true;grid.material.opacity=.22;scene.add(grid);
+// Звёздное небо
+const starGeo=new THREE.BufferGeometry(),starPos=[];
+for(let i=0;i<650;i++){const a=Math.random()*Math.PI*2,y=Math.random()*2-0.1,r=65+Math.random()*25;starPos.push(Math.cos(a)*r,y*r,Math.sin(a)*r);}
+starGeo.setAttribute('position',new THREE.Float32BufferAttribute(starPos,3));
+scene.add(new THREE.Points(starGeo,new THREE.PointsMaterial({color:0xbdeeff,size:.18,transparent:true,opacity:.9})));
+const rockMat=new THREE.MeshStandardMaterial({color:0x603b3c,roughness:1});
+for(let i=0;i<85;i++){const rock=new THREE.Mesh(new THREE.DodecahedronGeometry(.18+Math.random()*.62,0),rockMat);rock.position.set((Math.random()-.5)*48,0,(Math.random()-.5)*48);rock.scale.y=.35+Math.random()*.8;rock.rotation.set(Math.random(),Math.random(),Math.random());rock.castShadow=true;scene.add(rock);}
+// Далёкие марсианские скалы
+const ridgeMat=new THREE.MeshStandardMaterial({color:0x512e39,roughness:1});
+for(let i=0;i<12;i++){const h=4+Math.random()*7,m=new THREE.Mesh(new THREE.ConeGeometry(3+Math.random()*4,h,5),ridgeMat);m.position.set(-28+i*5,-1,-31-Math.random()*8);m.rotation.z=(Math.random()-.5)*.25;scene.add(m);}
 const base=new THREE.Group();scene.add(base);
-const floor=new THREE.Mesh(new THREE.CylinderGeometry(3.2,3.5,.35,48),new THREE.MeshStandardMaterial({color:0x77716a,metalness:.4,roughness:.6}));floor.position.y=.1;base.add(floor);
-const dome=new THREE.Mesh(new THREE.SphereGeometry(3,40,24,0,Math.PI*2,0,Math.PI/2),new THREE.MeshPhysicalMaterial({color:0x9bd7e8,transparent:true,opacity:.22,roughness:.1,metalness:.15,side:THREE.DoubleSide}));dome.position.y=.28;base.add(dome);
-const ring=new THREE.Mesh(new THREE.TorusGeometry(3,.12,12,64),new THREE.MeshStandardMaterial({color:0xb8c4c8,metalness:.7,roughness:.3}));ring.rotation.x=Math.PI/2;ring.position.y=.3;base.add(ring);
-const module1=new THREE.Mesh(new THREE.CylinderGeometry(.8,.9,1.5,24),new THREE.MeshStandardMaterial({color:0xd6d0c5,metalness:.35,roughness:.55}));module1.position.set(0,.95,0);base.add(module1);
-const roof=new THREE.Mesh(new THREE.ConeGeometry(.85,.55,24),new THREE.MeshStandardMaterial({color:0x9b5c3d,metalness:.3}));roof.position.set(0,1.95,0);base.add(roof);
-const panel=new THREE.Group();panel.position.set(5,.35,1);scene.add(panel);
-const panelBase=new THREE.Mesh(new THREE.BoxGeometry(2.8,.12,1.7),new THREE.MeshStandardMaterial({color:0x33383d,metalness:.5}));panelBase.position.y=.8;panel.add(panelBase);
-for(let i=0;i<4;i++){const p=new THREE.Mesh(new THREE.BoxGeometry(.64,.04,1.55),new THREE.MeshStandardMaterial({color:0x174b78,metalness:.6,roughness:.25}));p.position.set(-.99+i*.66,.9,0);panel.add(p);}
-const metal=new THREE.MeshStandardMaterial({color:0xaaa39a,metalness:.6});
-for(const x of [-1,1])for(const z of [-.55,.55]){const leg=new THREE.Mesh(new THREE.CylinderGeometry(.05,.07,.8,8),metal);leg.position.set(x,.4,z);panel.add(leg);}
-function person(color){const g=new THREE.Group(),suit=new THREE.MeshStandardMaterial({color,roughness:.7});const body=new THREE.Mesh(new THREE.CapsuleGeometry(.19,.42,4,8),suit);body.position.y=.55;g.add(body);const helmet=new THREE.Mesh(new THREE.SphereGeometry(.19,16,12),new THREE.MeshStandardMaterial({color:0xdcecf0,metalness:.35,roughness:.18}));helmet.position.y=.94;g.add(helmet);const visor=new THREE.Mesh(new THREE.SphereGeometry(.125,12,8),new THREE.MeshStandardMaterial({color:0x234b63,metalness:.6,roughness:.15}));visor.scale.set(1,.72,.5);visor.position.set(0,.96,.14);g.add(visor);for(const x of [-.11,.11]){const leg=new THREE.Mesh(new THREE.CylinderGeometry(.055,.06,.28,8),suit);leg.position.set(x,.18,0);g.add(leg);}return g;}
-const people=[
-{name:'Илья',mesh:person(0x3e9cce),speed:.7,phase:0,hunger:100,rest:100},
-{name:'Мира',mesh:person(0xd58b48),speed:.85,phase:2,hunger:100,rest:100},
-{name:'Том',mesh:person(0x78a96b),speed:.65,phase:4,hunger:100,rest:100}
-];
+const metal=new THREE.MeshStandardMaterial({color:0x9caeb8,metalness:.75,roughness:.28});
+const darkMetal=new THREE.MeshStandardMaterial({color:0x1b2d3c,metalness:.7,roughness:.35});
+const glowMat=new THREE.MeshStandardMaterial({color:0x35eaff,emissive:0x08b9d5,emissiveIntensity:2.4,metalness:.25,roughness:.2});
+const floor=new THREE.Mesh(new THREE.CylinderGeometry(3.6,3.85,.42,48),darkMetal);floor.position.y=.08;floor.castShadow=true;base.add(floor);
+const floorRing=new THREE.Mesh(new THREE.TorusGeometry(3.55,.075,10,72),glowMat);floorRing.rotation.x=Math.PI/2;floorRing.position.y=.31;base.add(floorRing);
+const dome=new THREE.Mesh(new THREE.SphereGeometry(3.05,48,28,0,Math.PI*2,0,Math.PI/2),new THREE.MeshPhysicalMaterial({color:0x83e8ff,transparent:true,opacity:.18,roughness:.08,metalness:.22,side:THREE.DoubleSide,depthWrite:false}));dome.position.y=.35;base.add(dome);
+const domeRim=new THREE.Mesh(new THREE.TorusGeometry(3.05,.065,12,72),metal);domeRim.rotation.x=Math.PI/2;domeRim.position.y=.38;base.add(domeRim);
+const habitat=new THREE.Mesh(new THREE.CylinderGeometry(1.12,1.25,1.65,32),new THREE.MeshStandardMaterial({color:0x9eabb3,metalness:.55,roughness:.35}));habitat.position.y=1.1;habitat.castShadow=true;base.add(habitat);
+const roof=new THREE.Mesh(new THREE.SphereGeometry(1.14,32,16,0,Math.PI*2,0,Math.PI/2),darkMetal);roof.position.y=1.92;base.add(roof);
+const roofRing=new THREE.Mesh(new THREE.TorusGeometry(1.12,.055,10,48),glowMat);roofRing.rotation.x=Math.PI/2;roofRing.position.y=1.95;base.add(roofRing);
+// Светящиеся окна и вход
+for(let i=0;i<8;i++){const a=i*Math.PI/4;const w=new THREE.Mesh(new THREE.BoxGeometry(.34,.42,.055),new THREE.MeshStandardMaterial({color:0x8deeff,emissive:0x159fbd,emissiveIntensity:1.7}));w.position.set(Math.sin(a)*1.13,1.1,Math.cos(a)*1.13);w.lookAt(Math.sin(a)*3,1.1,Math.cos(a)*3);base.add(w);}
+const door=new THREE.Mesh(new THREE.BoxGeometry(.65,1.05,.09),darkMetal);door.position.set(0,.7,1.24);base.add(door);
+const doorLine=new THREE.Mesh(new THREE.BoxGeometry(.7,.045,.1),glowMat);doorLine.position.set(0,1.25,1.3);base.add(doorLine);
+// Трубы и антенна
+for(let i=0;i<3;i++){const pipe=new THREE.Mesh(new THREE.CylinderGeometry(.07,.07,1.5,10),metal);pipe.position.set(-2.2+i*.35,.8,-1.3);pipe.rotation.z=.35;base.add(pipe);}
+const mast=new THREE.Group();mast.position.set(2.2,0,-1.8);base.add(mast);
+const mastPole=new THREE.Mesh(new THREE.CylinderGeometry(.045,.07,3,10),metal);mastPole.position.y=1.5;mast.add(mastPole);
+const mastTop=new THREE.Mesh(new THREE.OctahedronGeometry(.25),glowMat);mastTop.position.y=3.1;mast.add(mastTop);
+// Солнечная станция
+const panel=new THREE.Group();panel.position.set(5,.2,1);scene.add(panel);
+const panelBase=new THREE.Mesh(new THREE.BoxGeometry(3.2,.16,2),darkMetal);panelBase.position.y=.9;panel.add(panelBase);
+for(let i=0;i<4;i++){const p=new THREE.Mesh(new THREE.BoxGeometry(.76,.045,1.82),new THREE.MeshStandardMaterial({color:0x123c69,metalness:.7,roughness:.2,emissive:0x06345b,emissiveIntensity:.6}));p.position.set(-1.17+i*.78,1,0);panel.add(p);for(let z=-.7;z<=.7;z+=.46){const line=new THREE.Mesh(new THREE.BoxGeometry(.7,.018,.018),glowMat);line.position.set(-1.17+i*.78,1.035,z);panel.add(line);}}
+for(const x of [-1.25,1.25])for(const z of [-.7,.7]){const leg=new THREE.Mesh(new THREE.CylinderGeometry(.055,.075,.9,8),metal);leg.position.set(x,.43,z);panel.add(leg);}
+const panelGlow=new THREE.PointLight(0x1edcff,5,8);panelGlow.position.set(0,1.5,0);panel.add(panelGlow);
+function person(color){
+ const g=new THREE.Group(),suit=new THREE.MeshStandardMaterial({color,metalness:.35,roughness:.48});
+ const body=new THREE.Mesh(new THREE.CapsuleGeometry(.2,.42,4,10),suit);body.position.y=.58;body.castShadow=true;g.add(body);
+ const pack=new THREE.Mesh(new THREE.BoxGeometry(.28,.42,.2),darkMetal);pack.position.set(0,.58,-.2);g.add(pack);
+ const helmet=new THREE.Mesh(new THREE.SphereGeometry(.2,20,14),new THREE.MeshStandardMaterial({color:0xd9f8ff,metalness:.5,roughness:.12}));helmet.position.y=1.02;g.add(helmet);
+ const visor=new THREE.Mesh(new THREE.SphereGeometry(.135,16,10),new THREE.MeshStandardMaterial({color:0x15516c,metalness:.7,roughness:.1,emissive:0x062b42}));visor.scale.set(1,.72,.5);visor.position.set(0,1.04,.15);g.add(visor);
+ const stripe=new THREE.Mesh(new THREE.BoxGeometry(.25,.055,.22),glowMat);stripe.position.set(0,.62,.18);g.add(stripe);
+ for(const x of [-.12,.12]){const leg=new THREE.Mesh(new THREE.CylinderGeometry(.06,.065,.3,10),suit);leg.position.set(x,.19,0);g.add(leg);const boot=new THREE.Mesh(new THREE.BoxGeometry(.14,.09,.2),darkMetal);boot.position.set(x,.06,.035);g.add(boot);}
+ return g;
+}
+const people=[{name:'Илья',mesh:person(0x2d91bd),speed:.7,phase:0,hunger:100,rest:100},{name:'Мира',mesh:person(0xd58b48),speed:.85,phase:2,hunger:100,rest:100},{name:'Том',mesh:person(0x6d9b78),speed:.65,phase:4,hunger:100,rest:100}];
 people.forEach((p,i)=>{p.mesh.position.set(i-1,0,1);scene.add(p.mesh);});
 let oxygen=100,water=120,food=80,energy=65,day=1,elapsed=0,hasFarm=false,built=false;
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.style.display='block';clearTimeout(toast.timer);toast.timer=setTimeout(()=>t.style.display='none',2800);}
-function refresh(){
- document.getElementById('oxygen').textContent=Math.round(oxygen)+'%';
- document.getElementById('water').textContent=water;
- document.getElementById('food').textContent=food;
- document.getElementById('energy').textContent=energy;
- const h=people.reduce((a,p)=>a+p.hunger,0)/3,r=people.reduce((a,p)=>a+p.rest,0)/3;
- document.getElementById('needs').textContent='Сытость: '+Math.round(h)+'% · Отдых: '+Math.round(r)+'%';
-}
-function waterPlant(){const g=new THREE.Group();g.position.set(-5,0,1);scene.add(g);const tank=new THREE.Mesh(new THREE.CylinderGeometry(.65,.65,1.5,24),new THREE.MeshStandardMaterial({color:0x6e9da5,metalness:.5}));tank.position.y=.8;g.add(tank);const top=new THREE.Mesh(new THREE.SphereGeometry(.65,24,12,0,Math.PI*2,0,Math.PI/2),new THREE.MeshStandardMaterial({color:0x9fc6c8}));top.position.y=1.55;g.add(top);}
-function farm(){const bed=new THREE.Mesh(new THREE.BoxGeometry(2.4,.22,1.5),new THREE.MeshStandardMaterial({color:0x513523}));bed.position.set(0,.12,-5);scene.add(bed);for(let i=0;i<5;i++){const plant=new THREE.Mesh(new THREE.CylinderGeometry(.04,.07,.65,7),new THREE.MeshStandardMaterial({color:0x4b9a48}));plant.position.set(-.8+i*.4,.52,-5);scene.add(plant);}}
+function refresh(){document.getElementById('oxygen').textContent=Math.round(oxygen)+'%';document.getElementById('water').textContent=water;document.getElementById('food').textContent=food;document.getElementById('energy').textContent=energy;const h=people.reduce((a,p)=>a+p.hunger,0)/3,r=people.reduce((a,p)=>a+p.rest,0)/3;document.getElementById('needs').textContent='Сытость: '+Math.round(h)+'% · Отдых: '+Math.round(r)+'%';}
+function waterPlant(){const g=new THREE.Group();g.position.set(-5,0,1);scene.add(g);const tank=new THREE.Mesh(new THREE.CylinderGeometry(.72,.78,1.7,24),new THREE.MeshStandardMaterial({color:0x477f91,metalness:.65,roughness:.28}));tank.position.y=.85;g.add(tank);const top=new THREE.Mesh(new THREE.SphereGeometry(.75,24,12,0,Math.PI*2,0,Math.PI/2),glowMat);top.position.y=1.7;g.add(top);const band=new THREE.Mesh(new THREE.TorusGeometry(.77,.06,10,32),glowMat);band.rotation.x=Math.PI/2;band.position.y=.8;g.add(band);const lamp=new THREE.PointLight(0x1bdfff,7,7);lamp.position.y=1.8;g.add(lamp);}
+function farm(){const g=new THREE.Group();g.position.set(0,0,-5);scene.add(g);const bed=new THREE.Mesh(new THREE.BoxGeometry(2.7,.28,1.7),darkMetal);bed.position.y=.14;g.add(bed);for(let i=0;i<5;i++){const plant=new THREE.Group();plant.position.set(-.9+i*.45,.3,0);g.add(plant);const stem=new THREE.Mesh(new THREE.CylinderGeometry(.045,.07,.55,8),new THREE.MeshStandardMaterial({color:0x53b878}));stem.position.y=.28;plant.add(stem);for(let j=0;j<3;j++){const leaf=new THREE.Mesh(new THREE.SphereGeometry(.13,8,6),new THREE.MeshStandardMaterial({color:0x58db8a,emissive:0x123c22}));leaf.scale.set(1,.35,1.6);leaf.position.set((j-1)*.1,.4,(j%2?-.1:.1));plant.add(leaf);}}const strip=new THREE.Mesh(new THREE.BoxGeometry(2.5,.045,.06),glowMat);strip.position.set(0,.33,.82);g.add(strip);}
 document.getElementById('build').onclick=()=>{if(built)return toast('Водоочиститель уже построен.');if(water<30||energy<15)return toast('Нужно 30 воды и 15 энергии.');built=true;water-=30;energy-=15;waterPlant();refresh();toast('Водоочиститель построен! Теперь он даёт 15 воды каждый день.');};
 document.getElementById('farm').onclick=()=>{if(hasFarm)return toast('Грядка уже построена.');if(water<15||energy<10)return toast('Нужно 15 воды и 10 энергии.');hasFarm=true;water-=15;energy-=10;farm();refresh();toast('Грядка готова! Первый урожай будет завтра.');};
-document.getElementById('info').onclick=()=>toast('За день солнечная панель даёт +12 энергии. Водоочиститель даёт +15 воды, грядка — +12 еды. Колонисты едят и спят по расписанию.');
+document.getElementById('info').onclick=()=>toast('За день солнечная панель даёт +12 энергии. Водоочиститель даёт +15 воды, грядка — +12 еды. Колонисты едят и отдыхают по расписанию.');
 let target=new THREE.Vector3(0,0,0),az=Math.PI/4,el=.55,dist=16,down=false,lastX=0,lastY=0;
 function updateCamera(){el=Math.max(.15,Math.min(1.35,el));dist=Math.max(7,Math.min(30,dist));camera.position.set(target.x+dist*Math.sin(az)*Math.cos(el),target.y+dist*Math.sin(el),target.z+dist*Math.cos(az)*Math.cos(el));camera.lookAt(target);}
 updateCamera();const canvas=renderer.domElement;
-canvas.addEventListener('pointerdown',e=>{if(e.pointerType==='touch'&&canvas.hasPointerCapture(e.pointerId)===false){}down=true;lastX=e.clientX;lastY=e.clientY;canvas.setPointerCapture(e.pointerId);});
+canvas.addEventListener('pointerdown',e=>{if(e.pointerType==='touch'&&e.isPrimary===false)return;down=true;lastX=e.clientX;lastY=e.clientY;canvas.setPointerCapture(e.pointerId);});
 canvas.addEventListener('pointermove',e=>{if(!down)return;az-=(e.clientX-lastX)*.008;el+=(e.clientY-lastY)*.006;lastX=e.clientX;lastY=e.clientY;updateCamera();});
 canvas.addEventListener('pointerup',()=>down=false);canvas.addEventListener('pointercancel',()=>down=false);
 let pinch=0;canvas.addEventListener('touchmove',e=>{if(e.touches.length===2){const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);if(pinch)dist+=(pinch-d)*.025;pinch=d;updateCamera();}},{passive:true});canvas.addEventListener('touchend',()=>pinch=0);
-function nextDay(){
- day++;document.getElementById('day').textContent=day;
- // Солнечная панель заряжает аккумулятор каждый новый день.
- energy=Math.min(100,energy+12);
- energy=Math.max(0,energy-2); // базовые расходы колонии
- // Водоочиститель работает только при наличии энергии.
- if(built&&energy>=2){water=Math.min(150,water+15);energy-=2;}
- water=Math.max(0,water-3); // вода для трёх колонистов
- // Система жизнеобеспечения поддерживает кислород.
- if(energy>=3){energy-=3;oxygen=Math.min(100,oxygen+12);}
- else oxygen=Math.max(0,oxygen-12);
- // Колонисты расходуют еду, а урожай поступает с грядки.
- food=Math.max(0,food-6);
- if(hasFarm)food=Math.min(150,food+12);
- people.forEach(p=>{
-   if(food>0)p.hunger=Math.min(100,p.hunger+22);
-   else p.hunger=Math.max(0,p.hunger-25);
- });
- refresh();
- const alerts=[];
- if(oxygen<30)alerts.push('Мало кислорода!');
- if(water<15)alerts.push('Заканчивается вода!');
- if(food<15)alerts.push('Заканчивается еда!');
- if(energy<10)alerts.push('Мало энергии!');
- if(alerts.length)toast(alerts.join(' '));
- else toast('Наступил день '+day+'. Ресурсы колонии обновлены.');
-}
+function nextDay(){day++;document.getElementById('day').textContent=day;energy=Math.min(100,energy+12);energy=Math.max(0,energy-2);if(built&&energy>=2){water=Math.min(150,water+15);energy-=2;}water=Math.max(0,water-3);if(energy>=3){energy-=3;oxygen=Math.min(100,oxygen+12);}else oxygen=Math.max(0,oxygen-12);food=Math.max(0,food-6);if(hasFarm)food=Math.min(150,food+12);people.forEach(p=>{if(food>0)p.hunger=Math.min(100,p.hunger+22);else p.hunger=Math.max(0,p.hunger-25);});refresh();const alerts=[];if(oxygen<30)alerts.push('Мало кислорода!');if(water<15)alerts.push('Заканчивается вода!');if(food<15)alerts.push('Заканчивается еда!');if(energy<10)alerts.push('Мало энергии!');toast(alerts.length?alerts.join(' '):'Наступил день '+day+'. Ресурсы колонии обновлены.');}
 let last=performance.now();
-function animate(now){
- requestAnimationFrame(animate);const dt=Math.min((now-last)/1000,.05);last=now;elapsed+=dt;
- const hour=Math.floor((elapsed%90)/90*24);document.getElementById('clock').textContent=String(hour).padStart(2,'0')+':00';
- people.forEach((p,i)=>{
-   const phase=(elapsed+p.phase*7)%90;
-   const status=phase<45?'работает':phase<65?'отдыхает':'спит';
-   if(status==='спит')p.rest=Math.min(100,p.rest+dt*2.8);
-   else p.rest=Math.max(0,p.rest-dt*(status==='отдыхает'?.12:.35));
-   p.hunger=Math.max(0,p.hunger-dt*.025);
-   const radius=status==='спит'?1.1:(i===0?1.8:6),cx=i===0?0:(i===1?5:-5),cz=i===0?0:1,t=elapsed*.35+p.phase;
-   const tx=cx+Math.cos(t)*radius,tz=cz+Math.sin(t)*radius*.55,dx=tx-p.mesh.position.x,dz=tz-p.mesh.position.z,len=Math.hypot(dx,dz);
-   // Во время сна персонаж остаётся на месте; во время отдыха двигается медленнее.
-   if(status!=='спит'&&len>.08){const speed=p.speed*(status==='отдыхает'?.35:1);const step=Math.min(len,speed*dt);p.mesh.position.x+=dx/len*step;p.mesh.position.z+=dz/len*step;p.mesh.rotation.y=Math.atan2(dx,dz);}
-   p.mesh.position.y=status==='спит'?0:.025+Math.abs(Math.sin(elapsed*6+p.phase))*.025;
-   p.status=status;
- });
- document.getElementById('settlers').innerHTML=people.map(p=>p.name+' — '+p.status).join('<br>');
- if(elapsed>=90){elapsed=0;nextDay();}
- refresh();renderer.render(scene,camera);
-}
+function animate(now){requestAnimationFrame(animate);const dt=Math.min((now-last)/1000,.05);last=now;elapsed+=dt;const hour=Math.floor((elapsed%90)/90*24);document.getElementById('clock').textContent=String(hour).padStart(2,'0')+':00';people.forEach((p,i)=>{const phase=(elapsed+p.phase*7)%90,status=phase<45?'работает':phase<65?'отдыхает':'спит';if(status==='спит')p.rest=Math.min(100,p.rest+dt*2.8);else p.rest=Math.max(0,p.rest-dt*(status==='отдыхает'?.12:.35));p.hunger=Math.max(0,p.hunger-dt*.025);const radius=status==='спит'?1.1:(i===0?1.8:6),cx=i===0?0:(i===1?5:-5),cz=i===0?0:1,t=elapsed*.35+p.phase,tx=cx+Math.cos(t)*radius,tz=cz+Math.sin(t)*radius*.55,dx=tx-p.mesh.position.x,dz=tz-p.mesh.position.z,len=Math.hypot(dx,dz);if(status!=='спит'&&len>.08){const speed=p.speed*(status==='отдыхает'?.35:1),step=Math.min(len,speed*dt);p.mesh.position.x+=dx/len*step;p.mesh.position.z+=dz/len*step;p.mesh.rotation.y=Math.atan2(dx,dz);}p.mesh.position.y=status==='спит'?0:.025+Math.abs(Math.sin(elapsed*6+p.phase))*.025;p.status=status;});document.getElementById('settlers').innerHTML=people.map(p=>p.name+' — '+p.status).join('<br>');if(elapsed>=90){elapsed=0;nextDay();}refresh();dome.rotation.y=Math.sin(now*.00015)*.012;renderer.render(scene,camera);}
 requestAnimationFrame(animate);
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
 })();
